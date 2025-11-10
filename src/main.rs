@@ -11,7 +11,9 @@ fn main() {
         let counter_clone = Arc::clone(&counter);
 
         let handle = thread::spawn(move || {
-            // INCREMENTAR O counter AQUI!!!!
+            let mut r = counter_clone.lock().unwrap();
+            panic!();
+            *r += 1;
         });
         handles.push(handle);
     }
