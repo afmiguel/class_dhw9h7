@@ -8,7 +8,7 @@ fn main() {
     // Esta thread vai dar panic! e envenenar o mutex
     let handle = thread::spawn(move || {
         let guard = data_clone.lock().unwrap();
-        // panic!("A thread 1 falhou!"); // O lock é envenenado
+        panic!("A thread 1 falhou!"); // O lock é envenenado
         *guard + 1 
     }); // Espera a thread falhar
 
