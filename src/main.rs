@@ -3,7 +3,7 @@ use std::thread;
 
 fn main() {
     // 1. O contador é protegido por Arc e Mutex.
-    let counter = // CRIAR O ARC MUTEX para um i32!!!!
+    let counter = Arc::new(Mutex::new(0));
     let mut handles = vec![];
 
     for _ in 0..10 {
