@@ -2,27 +2,23 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 
 fn main() {
-    // 1. O contador é protegido por Arc e Mutex.
-    let counter = Arc::new(Mutex::new(0));
-    let mut handles = vec![];
+    let data = Arc::new(Mutex::new(0));
+    let data_clone = Arc::clone(&data);
 
-    for _ in 0..10 {
-        // 2. Clonamos o Arc (operação barata)
-        let counter_clone = Arc::clone(&counter);
+    // Esta thread vai dar panic! e envenenar o mutex
+    let handle = thread::spawn(move || {
+        let _guard = data_clone.lock().unwrap();
+        panic!("A thread 1 falhou!"); // O lock é envenenado
+    }); // Espera a thread falhar
 
-        let handle = thread::spawn(move || {
-            let mut r = counter_clone.lock().unwrap();
-            panic!();
-            *r += 1;
-        });
-        handles.push(handle);
-    }
-    // 6. Espera todas as threads terminarem
-    for handle in handles {
-        handle.join().unwrap();
+    match handle.join() {
+        Ok(result) => println!("Thread 1 result: {}", result),
+        Err(_) => println!("A thread 1 falhou."),
     }
 
-    // 7. Trava o mutex na thread 'main' para ler
-    //    o valor final.
-    println!("Resultado: {}", *counter.lock().unwrap());
+    // A thread 'main' tenta travar o mutex envenenado
+    let res = data.lock(); // Não usamos .unwrap()
+
+    // 'res' será um Err(PoisonError(...))
+    println!("Mutex está envenenado? {}", res.is_err()); // true
 }
