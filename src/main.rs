@@ -1,37 +1,27 @@
-use std::sync::{Arc, Mutex};
-use std::thread;
+use std::sync::{Arc, RwLock};
 
 fn main() {
-    let data = Arc::new(Mutex::new(0));
-    let data_clone = Arc::clone(&data);
+    let config = Arc::new(RwLock::new("Versão 1".to_string()));
 
-    // Esta thread vai dar panic! e envenenar o mutex
-    let handle = thread::spawn(move || {
-        let mut guard = data_clone.lock().unwrap();
-        *guard += 1;
-        panic!("A thread 1 falhou!");
-        *guard + 1 
-    }); // Espera a thread falhar
-
-    match handle.join() {
-        Ok(result) => println!("Thread 1 result: {}", result),
-        Err(_) => {
-            println!("A thread 1 falhou.");
-            match data.lock() {
-                Ok(r) => {
-                    println!("Ok, falhou mas continua íntegro: {}", *r);
-                },
-                Err(e) => {
-                    println!("Que pena! A thread falhou e o Mutex está envenenado!");
-                    println!("Mesmo assim, aqui está seu valor: {}", e.into_inner());
-                }
-            }
-        }
+    // --- 5 Threads Leitoras (rodam em paralelo!) ---
+    for i in 0..5 {
+        let config_clone = Arc::clone(&config);
+        std::thread::spawn(move || {
+            // Pede um lock de LEITURA (compartilhado)
+            let cfg = config_clone.read().unwrap();
+            println!("Leitor {}: Config é '{}'", i, *cfg);
+        });
     }
 
-    // A thread 'main' tenta travar o mutex envenenado
-    //let res = data.lock(); // Não usamos .unwrap()
+    // --- 1 Thread Escritora (espera todos os leitores) ---
+    let config_clone_writer = Arc::clone(&config);
+    std::thread::spawn(move || {
+        // Pede um lock de ESCRITA (exclusivo)
+        let mut cfg = config_clone_writer.write().unwrap();
+        *cfg = "Versão 2".to_string();
+        println!("ESCRITOR: Config atualizada!");
+    });
 
-    // 'res' será um Err(PoisonError(...))
-    //println!("Mutex está envenenado? {}", res.is_err()); // true
+    std::thread::sleep(std::time::Duration::from_secs(1));
 }
+
